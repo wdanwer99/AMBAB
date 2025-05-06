@@ -1,3 +1,4 @@
+import 'package:agriplant/models/product.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
@@ -73,6 +74,53 @@ class DBService {
       'products',
       where: 'id = ?',
       whereArgs: [id],
+    );
+  }
+  Future<void> saveProduct(Product product, String userId) async {
+    final db = await database;
+    await db.insert(
+      'saved_products',
+      {
+        'id': product.id,
+        'name': product.name,
+        'price': product.price,
+        'quantity': product.quantity,
+        'imageUrl': product.image,
+        'description': product.description,
+        'category': product.category,
+        'userId': userId,
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<List<Product>> getSavedProducts(String userId) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'saved_products',
+      where: 'userId = ?',
+      whereArgs: [userId],
+    );
+
+    return List.generate(maps.length, (i) {
+      return Product(
+        id: maps[i]['id'],
+        name: maps[i]['name'],
+        price: maps[i]['price'],
+        quantity: maps[i]['quantity'],
+        image: maps[i]['imageUrl'],
+        description: maps[i]['description'],
+        category: maps[i]['category'],
+      );
+    });
+  }
+
+  Future<void> deleteSavedProduct(String userId, String productId) async {
+    final db = await database;
+    await db.delete(
+      'saved_products',
+      where: 'userId = ? AND id = ?',
+      whereArgs: [userId, productId],
     );
   }
 }

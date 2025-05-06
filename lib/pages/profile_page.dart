@@ -2,6 +2,7 @@ import 'package:agriplant/models/product.dart';
 import 'package:agriplant/pages/login_page.dart';
 import 'package:agriplant/pages/orders_page.dart';
 import 'package:agriplant/pages/about_us_page.dart';
+import 'package:agriplant/pages/saved_products_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_iconly/flutter_iconly.dart';
 import 'package:agriplant/services/user_service.dart';
@@ -23,17 +24,23 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   void initState() {
     super.initState();
-    // _fetchUserData();
+    _fetchUserData();
     _fetchSavedProducts();
   }
 
-  // Future<void> _fetchUserData() async {
-  //   final user = await UserService.getUser();
-  //   setState(() {
-  //     userName = user.name;
-  //     userEmail = user.email;
-  //   });
-  // }
+  Future<void> _fetchUserData() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final userData = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+      setState(() {
+        userName = userData['name'];
+        userEmail = userData['email'];
+      });
+    }
+  }
 
   Future<void> _fetchSavedProducts() async {
     final user = FirebaseAuth.instance.currentUser;
@@ -58,6 +65,22 @@ class _ProfilePageState extends State<ProfilePage> {
 
       setState(() {
         savedProducts = products;
+      });
+    }
+  }
+
+  Future<void> _deleteSavedProduct(String productId) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('saved_products')
+          .doc(productId)
+          .delete();
+
+      setState(() {
+        savedProducts.removeWhere((product) => product.id == productId);
       });
     }
   }
@@ -109,8 +132,10 @@ class _ProfilePageState extends State<ProfilePage> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) =>
-                      SavedProductsPage(savedProducts: savedProducts),
+                  builder: (context) => SavedProductsPage(
+                    savedProducts: savedProducts,
+                    deleteProduct: _deleteSavedProduct,
+                  ),
                 ),
               );
             },
@@ -142,31 +167,42 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 }
 
-class SavedProductsPage extends StatelessWidget {
-  final List<Product> savedProducts;
+// class SavedProductsPage extends StatelessWidget {
+//   final List<Product> savedProducts;
+//   final Future<void> Function(String) deleteProduct;
 
-  const SavedProductsPage({super.key, required this.savedProducts});
+//   // const SavedProductsPage({
+//   //   super.key,
+//   //   required this.savedProducts,
+//   //   required this.deleteProduct,
+//   // });
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Saved Products"),
-      ),
-      body: ListView.builder(
-        itemCount: savedProducts.length,
-        itemBuilder: (context, index) {
-          final product = savedProducts[index];
-          return ListTile(
-            leading: Image.network(product.image),
-            title: Text(product.name),
-            subtitle: Text("\$${product.price}"),
-          );
-        },
-      ),
-    );
-  }
-}
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       appBar: AppBar(
+//         title: const Text("Saved Products"),
+//       ),
+//       body: ListView.builder(
+//         itemCount: savedProducts.length,
+//         itemBuilder: (context, index) {
+//           final product = savedProducts[index];
+//           return ListTile(
+//             leading: Image.network(product.image),
+//             title: Text(product.name),
+//             subtitle: Text("\$${product.price}"),
+//             trailing: IconButton(
+//               icon: const Icon(Icons.delete),
+//               onPressed: () async {
+//                 await deleteProduct(product.id);
+//               },
+//             ),
+//           );
+//         },
+//       ),
+//     );
+//   }
+// }
 
 // class UserService {
 //   static Future<UserData> getUser() async {
